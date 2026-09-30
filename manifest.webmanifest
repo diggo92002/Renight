@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "夜聲 — 睡前聲音播放器",
+  "short_name": "夜聲",
+  "description": "調一段舒服的聲音，讓今晚慢慢安靜下來。",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111512",
+  "theme_color": "#111512",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
