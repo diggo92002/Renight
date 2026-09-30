@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="icon.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>韓文闖關學習系統 - 手機優化版</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖示 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { 
+      font-family: 'Noto Sans TC', 'Noto Sans KR', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* 隱藏橫向滾動條 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- Header 導覽列 (手機優化) -->
+  <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-lg shadow-indigo-200 shadow-md">
+          한
+        </div>
+        <div>
+          <h1 class="font-bold text-base text-slate-800 leading-none">韓文闖關學習</h1>
+          <p class="text-[10px] text-slate-400 mt-0.5">隨機測驗 & 動態錯題本</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <!-- 開發者模式按鈕 -->
+        <button id="developerButton" onclick="toggleDeveloperMode()" title="切換開發者模式" aria-label="切換開發者模式" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs transition border border-transparent">
+          <i class="fa-solid fa-code"></i>
+        </button>
+        <button onclick="toggleDevModeModal()" title="設定" aria-label="設定" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs transition">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容區域 -->
+  <main class="max-w-5xl mx-auto px-3 py-3 flex-1 w-full space-y-3 pb-20">
+
+    <!-- 階段選擇 (手機橫向滑動卡片) -->
+    <nav class="overflow-x-auto no-scrollbar py-1">
+      <div class="flex gap-2 min-w-max px-1" id="phaseTabContainer">
+        <!-- JavaScript 動態渲染階段頁籤 -->
+      </div>
+    </nav>
+
+    <!-- 頂部資訊卡片 (狀態、計時與手動更新) -->
+    <div id="statusHeader" class="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-2xl p-4 text-white shadow-md shadow-indigo-100 space-y-2">
+      <div class="flex items-center justify-between">
+        <span id="phaseBadge" class="px-2.5 py-0.5 bg-white/20 backdrop-blur-md text-white text-[11px] font-bold rounded-lg border border-white/20">
+          階段 1
+        </span>
+        <div id="networkControl" class="hidden flex items-center gap-2 text-xs">
+          <span id="exampleSource" class="text-indigo-200 text-[10px]">尚未更新</span>
+          <span id="countdownTimer" class="font-mono font-bold text-amber-300">30:00</span>
+          <button onclick="triggerNetworkUpdate()" title="更新外部韓文例句" aria-label="更新外部韓文例句" class="ml-1 w-6 h-6 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition">
+            <i class="fa-solid fa-arrows-rotate text-[10px]" id="refreshSpinner"></i>
+          </button>
+        </div>
+      </div>
+      <h2 id="phaseTitle" class="text-base font-bold leading-tight">階段 1：韓文字母拼音總表 · 30 小時</h2>
+    </div>
+
+    <!-- 開發者模式選單 (Modal 形式) -->
+    <div id="devModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 hidden">
+      <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-amber-500"></i> 開發者測試控制台
+          </h3>
+          <button onclick="closeDevModeModal()" class="text-slate-400 text-sm">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 gap-2 text-xs">
+          <p id="developerModeStatus" class="p-3 bg-slate-100 text-slate-700 rounded-xl font-bold">目前開發者模式：關閉</p>
+          <button id="developerModeToggle" onclick="toggleDeveloperMode()" class="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-left">切換開發者模式開關</button>
+          <button onclick="triggerNetworkUpdate(); closeDevModeModal();" class="p-3 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl font-medium text-left flex items-center justify-between">
+            <span>⚡ 強制刷新網路 API 題庫</span>
+            <i class="fa-solid fa-bolt text-amber-500"></i>
+          </button>
+          <button onclick="timerSeconds=5; updateTimerDisplay(); closeDevModeModal();" class="p-3 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl font-medium text-left flex items-center justify-between">
+            <span>⏱️ 將倒數計時縮短至 5 秒</span>
+            <i class="fa-solid fa-clock text-amber-500"></i>
+          </button>
+          <button onclick="clearWrongQuestions(); closeDevModeModal();" class="p-3 bg-red-50 hover:bg-red-100 text-red-800 rounded-xl font-medium text-left flex items-center justify-between">
+            <span>🗑️ 清空所有錯題記錄</span>
+            <i class="fa-solid fa-trash text-red-500"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主練習內容呈現區 -->
+    <section id="contentArea" class="space-y-3">
+      <!-- 動態載入內容 -->
+    </section>
+
+  </main>
+
+  <!-- 全螢幕測驗 Modal (手機端滿版設計) -->
+  <div id="testModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-end sm:items-center justify-center z-50 hidden">
+    <div class="bg-white w-full max-w-md h-[92vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+      <!-- Modal Header -->
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-graduation-cap text-indigo-400"></i>
+          <h3 class="font-bold text-sm" id="modalTitle">階段測驗</h3>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <!-- Modal Body -->
+      <div class="p-5 overflow-y-auto flex-1 space-y-4" id="modalBody">
+        <!-- 測驗內容動態渲染 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-3 text-center text-[11px] text-slate-400 fixed bottom-0 left-0 right-0 z-30">
+    <p>韓文闖關學習系統 &copy; 2026 | 手機版優化</p>
+  </footer>
+
+  <!-- JavaScript 邏輯程式碼 -->
+  <script>
+    let currentPhase = 1;
+    let timerSeconds = 1800;
+    const PHASE_STUDY_HOURS = { 1: 30, 2: 150, 3: 300, 4: 400, 5: 200 };
+    const PROGRESS_KEY = 'kr_app_phase_progress_v2';
+    let progress = loadProgress();
+    let developerMode = false;
+    let activeTestPhase = null;
+    let timerInterval = null;
+
+    let testQuestions = [];
+    let currentQuestionIdx = 0;
+    let userScore = 0;
+    const selectedExamples = { 1: null, 2: null, 3: null };
+
+    // 階段 1：韓文字母拼音總表（19 個子音、21 個母音）
+    const phase1Data = [
+      { kana: 'ㄱ', romaji: 'g / k', sound: '가', word: '가방', reading: 'gabang', meaning: '書包' },
+      { kana: 'ㄴ', romaji: 'n', sound: '나', word: '나무', reading: 'namu', meaning: '樹木' },
+      { kana: 'ㄷ', romaji: 'd / t', sound: '다', word: '다리', reading: 'dari', meaning: '橋／腿' },
+      { kana: 'ㄹ', romaji: 'r / l', sound: '라', word: '라면', reading: 'ramyeon', meaning: '拉麵' },
+      { kana: 'ㅁ', romaji: 'm', sound: '마', word: '모자', reading: 'moja', meaning: '帽子' },
+      { kana: 'ㅂ', romaji: 'b / p', sound: '바', word: '바다', reading: 'bada', meaning: '大海' },
+      { kana: 'ㅅ', romaji: 's', sound: '사', word: '사과', reading: 'sagwa', meaning: '蘋果' },
+      { kana: 'ㅇ', romaji: '∅ / ng', sound: '아', word: '아이', reading: 'ai', meaning: '小孩；字首不發音，字尾讀 ng' },
+      { kana: 'ㅈ', romaji: 'j', sound: '자', word: '자전거', reading: 'jajeongeo', meaning: '腳踏車' },
+      { kana: 'ㅊ', romaji: 'ch', sound: '차', word: '친구', reading: 'chingu', meaning: '朋友' },
+      { kana: 'ㅋ', romaji: 'k', sound: '카', word: '카드', reading: 'kadeu', meaning: '卡片' },
+      { kana: 'ㅌ', romaji: 't', sound: '타', word: '토마토', reading: 'tomato', meaning: '番茄' },
+      { kana: 'ㅍ', romaji: 'p', sound: '파', word: '포도', reading: 'podo', meaning: '葡萄' },
+      { kana: 'ㅎ', romaji: 'h', sound: '하', word: '학교', reading: 'hakgyo', meaning: '學校' },
+      { kana: 'ㄲ', romaji: 'kk', sound: '까', word: '토끼', reading: 'tokki', meaning: '兔子' },
+      { kana: 'ㄸ', romaji: 'tt', sound: '따', word: '딸기', reading: 'ttalgi', meaning: '草莓' },
+      { kana: 'ㅃ', romaji: 'pp', sound: '빠', word: '뿌리', reading: 'ppuri', meaning: '根部' },
+      { kana: 'ㅆ', romaji: 'ss', sound: '싸', word: '쓰다', reading: 'sseuda', meaning: '寫／苦' },
+      { kana: 'ㅉ', romaji: 'jj', sound: '짜', word: '찌개', reading: 'jjigae', meaning: '韓式鍋物' },
+      { kana: 'ㅏ', romaji: 'a', sound: '아', word: '아이', reading: 'ai', meaning: '孩子' },
+      { kana: 'ㅓ', romaji: 'eo', sound: '어', word: '어머니', reading: 'eomeoni', meaning: '母親' },
+      { kana: 'ㅗ', romaji: 'o', sound: '오', word: '오이', reading: 'oi', meaning: '黃瓜' },
+      { kana: 'ㅜ', romaji: 'u', sound: '우', word: '우유', reading: 'uyu', meaning: '牛奶' },
+      { kana: 'ㅡ', romaji: 'eu', sound: '으', word: '으', reading: 'eu', meaning: '拼讀示範' },
+      { kana: 'ㅣ', romaji: 'i', sound: '이', word: '이름', reading: 'ireum', meaning: '名字' },
+      { kana: 'ㅐ', romaji: 'ae', sound: '애', word: '애', reading: 'ae', meaning: '拼讀示範' },
+      { kana: 'ㅔ', romaji: 'e', sound: '에', word: '에', reading: 'e', meaning: '拼讀示範' },
+      { kana: 'ㅚ', romaji: 'oe', sound: '외', word: '외', reading: 'oe', meaning: '拼讀示範' },
+      { kana: 'ㅟ', romaji: 'wi', sound: '위', word: '위', reading: 'wi', meaning: '上面' },
+      { kana: 'ㅑ', romaji: 'ya', sound: '야', word: '야', reading: 'ya', meaning: '拼讀示範' },
+      { kana: 'ㅕ', romaji: 'yeo', sound: '여', word: '여', reading: 'yeo', meaning: '拼讀示範' },
+      { kana: 'ㅛ', romaji: 'yo', sound: '요', word: '요', reading: 'yo', meaning: '拼讀示範' },
+      { kana: 'ㅠ', romaji: 'yu', sound: '유', word: '유', reading: 'yu', meaning: '拼讀示範' },
+      { kana: 'ㅒ', romaji: 'yae', sound: '얘', word: '얘', reading: 'yae', meaning: '這孩子／這個人' },
+      { kana: 'ㅖ', romaji: 'ye', sound: '예', word: '예', reading: 'ye', meaning: '是（禮貌回應）' },
+      { kana: 'ㅘ', romaji: 'wa', sound: '와', word: '와', reading: 'wa', meaning: '和／與' },
+      { kana: 'ㅙ', romaji: 'wae', sound: '왜', word: '왜', reading: 'wae', meaning: '為什麼' },
+      { kana: 'ㅝ', romaji: 'wo', sound: '워', word: '워', reading: 'wo', meaning: '拼讀示範' },
+      { kana: 'ㅞ', romaji: 'we', sound: '웨', word: '웨', reading: 'we', meaning: '拼讀示範' },
+      { kana: 'ㅢ', romaji: 'ui', sound: '의', word: '의', reading: 'ui', meaning: '的／所屬' }
+    ];
+    const phase1Groups = { 0: '基本子音（14）', 14: '雙子音（5）', 19: '基本母音（10）', 29: '複合母音（11）' };
+
+    // 階段 2：基礎生活單字與發音習慣
+    const phase2Data = [
+      { kana: '안녕하세요', romaji: 'annyeonghaseyo', word: '안녕하세요', reading: '안녕하세요', meaning: '您好 (禮貌體)' },
+      { kana: '감사합니다', romaji: 'gamsahamnida', word: '감사합니다', reading: '감사합니다', meaning: '謝謝 (正式)' },
+      { kana: '물', romaji: 'mul', word: '물', reading: 'mul', meaning: '水' },
+      { kana: '밥', romaji: 'bap', word: '밥', reading: 'bap', meaning: '飯 / 食物' },
+      { kana: '집', romaji: 'jip', word: '집', reading: 'jip', meaning: '家' },
+      { kana: '친구', romaji: 'chingu', word: '친구', reading: 'chingu', meaning: '朋友' },
+      { kana: '오늘', romaji: 'oneul', word: '오늘', reading: 'oneul', meaning: '今天' },
+      { kana: '내일', romaji: 'naeil', word: '내일', reading: 'naeil', meaning: '明天' },
+      { kana: '시간', romaji: 'sigan', word: '시간', reading: 'sigan', meaning: '時間' },
+      { kana: '돈', romaji: 'don', word: '돈', reading: 'don', meaning: '錢' },
+      { kana: '차', romaji: 'cha', word: '차', reading: 'cha', meaning: '車 / 茶' },
+      { kana: '책', romaji: 'chaek', word: '책', reading: 'chaek', meaning: '書本' },
+      { kana: '컴퓨터', romaji: 'keompyuteo', word: '컴퓨터', reading: 'keompyuteo', meaning: '電腦' },
+      { kana: '커피', romaji: 'keopi', word: '커피', reading: 'keopi', meaning: '咖啡' },
+      { kana: '날씨', romaji: 'nalssi', word: '날씨', reading: 'nalssi', meaning: '天氣' }
+    ];
+
+    // 階段 3：基礎文法、語序與敬語系統 (SOV、해요體)
+    const phase3Data = [
+      { kana: '저는 학생입니다.', romaji: 'jeoneun haksaengimnida', word: '저는 학생입니다.', reading: '學生', meaning: '我是學生 (正式)' },
+      { kana: '이것은 뭐예요?', romaji: 'igeoseun mwoyeyo?', word: '이것은 뭐예요?', reading: '什麼', meaning: '這個是什麼？' },
+      { kana: '사과를 먹어요.', romaji: 'sagwareul meogeoyo', word: '사과를 먹어요.', reading: '吃蘋果', meaning: '吃蘋果 (해요體)' },
+      { kana: '한국어를 공부해요.', romaji: 'hanguk-eureul gongbuhaeyo', word: '한국어를 공부해요.', reading: '學韓文', meaning: '學習韓文' },
+      { kana: '어디에 가요?', romaji: 'eodie gayo?', word: '어디에 가요?', reading: '去哪裡', meaning: '你要去哪裡？' },
+      { kana: '주말에 쉬어요.', romaji: 'jumare swieoyo', word: '주말에 쉬어요.', reading: '週末休息', meaning: '週末休息' },
+      { kana: '영화를 봐요.', romaji: 'yeonghwareul bwayo', word: '영화를 봐요.', reading: '看電影', meaning: '看電影' },
+      { kana: '커피를 마셔요.', romaji: 'keopireul masyeoyo', word: '커피를 마셔요.', reading: '喝咖啡', meaning: '喝咖啡' }
+    ];
+
+    let dynamicPhase4Data = [];
+    let dynamicPhase5Data = [];
+    const studyOnlineData = { 2: [], 3: [] };
+    const studyOnlineStatus = { 2: '目前顯示內建字卡；手動更新可換成線上內容', 3: '目前顯示內建字卡；手動更新可換成線上內容' };
+    const studyOnlineLoading = { 2: false, 3: false };
+    let exampleSource = '尚未更新';
+    const phaseNetworkStatus = { 4: '尚未更新', 5: '尚未更新' };
+    const phaseNetworkError = { 4: '', 5: '' };
+    const hasLoadedOnlineContent = { 4: false, 5: false };
+    const phaseUpdateInProgress = { 4: false, 5: false };
+    const dailySearches = {
+      2: [{ query: '감사합니다', scenario: '日常問候' }, { query: '어디', scenario: '常用問句' }],
+      3: [{ query: '때문에', scenario: '原因句型' }, { query: '하지만', scenario: '轉折句型' }],
+      4: [{ query: '주세요', scenario: '購物與點餐' }, { query: '어디', scenario: '交通與問路' }],
+      5: [{ query: '오늘', scenario: '日常對話' }, { query: '약속', scenario: '生活安排' }]
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTabs();
+      switchPhase(1);
+      startCountdownTimer();
+      startStudyTimer();
+      triggerNetworkUpdate();
+    });
+
+    function loadProgress() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+        return { seconds: saved.seconds || {}, passed: saved.passed || {} };
+      } catch (_) {
+        return { seconds: {}, passed: {} };
+      }
+    }
+
+    function saveProgress() {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+    }
+
+    function phaseUnlocked(phase) {
+      return developerMode || phase === 1 || phase === 99 || (phase >= 2 && phase <= 5 && !!progress.passed[phase - 1]);
+    }
+
+    function studySeconds(phase) {
+      return Math.min(PHASE_STUDY_HOURS[phase] * 3600, Number(progress.seconds[phase]) || 0);
+    }
+
+    function renderStudyStatus() {
+      const status = document.getElementById('studyStatus');
+      if (status && currentPhase !== 99) {
+        const required = PHASE_STUDY_HOURS[currentPhase] * 3600;
+        const studied = studySeconds(currentPhase);
+        const remaining = Math.max(0, required - studied);
+        const remainingMinutes = Math.ceil(remaining / 60);
+        const studiedHours = Math.floor(studied / 3600);
+        const studiedMinutes = Math.floor((studied % 3600) / 60);
+        status.textContent = `已學習 ${studiedHours} 小時 ${studiedMinutes} 分鐘／目標 ${PHASE_STUDY_HOURS[currentPhase]} 小時 · ` +
+          (developerMode ? '開發者模式：可立即考試' : progress.passed[currentPhase] ? '已通過測驗' : remaining ? `還需 ${Math.floor(remainingMinutes / 60)} 小時 ${remainingMinutes % 60} 分鐘才能考試` : '可參加測驗 · 通過分數 85 分');
+      }
+      const button = document.getElementById('phaseTestButton');
+      if (button) {
+        const onlineDataMissing = (currentPhase === 2 || currentPhase === 3) && studyOnlineData[currentPhase].length > 0
+          && onlineQuizPool(currentPhase).length < 4
+          || (currentPhase === 4 || currentPhase === 5) && onlineQuizPool(currentPhase).length < 4;
+        button.disabled = onlineDataMissing || !developerMode && studySeconds(currentPhase) < PHASE_STUDY_HOURS[currentPhase] * 3600;
+        button.classList.toggle('opacity-50', button.disabled);
+      }
+    }
+
+    function startStudyTimer() {
+      let lastTick = Date.now();
+      setInterval(() => {
+        const now = Date.now();
+        const elapsed = Math.min(2, Math.max(0, (now - lastTick) / 1000));
+        lastTick = now;
+        if (document.hidden || currentPhase === 99 || !phaseUnlocked(currentPhase) || studySeconds(currentPhase) >= PHASE_STUDY_HOURS[currentPhase] * 3600 || !document.getElementById('testModal').classList.contains('hidden')) return;
+        progress.seconds[currentPhase] = studySeconds(currentPhase) + elapsed;
+        saveProgress();
+        renderStudyStatus();
+      }, 1000);
+    }
+
+    function toggleDevModeModal() {
+      const modal = document.getElementById('devModal');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) updateDeveloperModeUI();
+    }
+
+    function closeDevModeModal() {
+      document.getElementById('devModal').classList.add('hidden');
+    }
+
+    function toggleDeveloperMode() {
+      developerMode = !developerMode;
+      if (!phaseUnlocked(currentPhase)) switchPhase(1);
+      else {
+        renderTabs();
+        renderStudyStatus();
+      }
+      updateDeveloperModeUI();
+    }
+
+    function updateDeveloperModeUI() {
+      const button = document.getElementById('developerButton');
+      const status = document.getElementById('developerModeStatus');
+      const toggle = document.getElementById('developerModeToggle');
+      button.classList.toggle('bg-emerald-100', developerMode);
+      button.classList.toggle('text-emerald-700', developerMode);
+      button.classList.toggle('border-emerald-500', developerMode);
+      button.classList.toggle('border-transparent', !developerMode);
+      if (status) {
+        status.textContent = developerMode
+          ? '目前開發者模式：已開啟（可略過學習時數直接考試）'
+          : '目前開發者模式：關閉';
+        status.classList.toggle('bg-emerald-50', developerMode);
+        status.classList.toggle('text-emerald-800', developerMode);
+        status.classList.toggle('bg-slate-100', !developerMode);
+        status.classList.toggle('text-slate-700', !developerMode);
+      }
+      if (toggle) toggle.textContent = developerMode ? '關閉開發者模式' : '開啟開發者模式';
+    }
+
+    function renderTabs() {
+      const tabs = [
+        { id: 1, name: '階段 1', desc: '字母拼音 · 30h' },
+        { id: 2, name: '階段 2', desc: '基礎單字 · 150h' },
+        { id: 3, name: '階段 3', desc: '文法句型 · 300h' },
+        { id: 4, name: '階段 4', desc: '實戰會話 · 400h' },
+        { id: 5, name: '階段 5', desc: '生活對話 · 200h' },
+        { id: 99, name: '錯題本', desc: '弱點' }
+      ];
+
+      const container = document.getElementById('phaseTabContainer');
+      container.innerHTML = tabs.map(tab => `
+        <button onclick="switchPhase(${tab.id})" ${phaseUnlocked(tab.id) ? '' : 'disabled title="請先通過前一階段測驗"'} class="px-3 py-2 rounded-xl flex flex-col items-center justify-center transition ${!phaseUnlocked(tab.id) ? 'opacity-45 cursor-not-allowed bg-slate-100 text-slate-400 border border-slate-200' : tab.id === currentPhase ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100 font-bold' : 'bg-white text-slate-600 border border-slate-200'}">
+          <span class="text-xs font-bold leading-none">${tab.name}</span>
+          <span class="text-[9px] opacity-75 mt-1">${tab.desc}</span>
+        </button>
+      `).join('');
+    }
+
+    function switchPhase(phaseId) {
+      if (!phaseUnlocked(phaseId)) return;
+      currentPhase = phaseId;
+      renderTabs();
+
+      const phaseTitles = {
+        1: '階段 1：韓文字母拼音總表 · 30 小時',
+        2: '階段 2：累積基礎單字與發音習慣 · 150 小時',
+        3: '階段 3：攻克基礎文法、SOV句型與敬語 · 300 小時',
+        4: '階段 4：聽說讀寫全方位應用與會話 · 400 小時',
+        5: '階段 5：生活情境與綜合對話 · 200 小時',
+        99: '錯題本：個人弱點強化複習'
+      };
+
+      document.getElementById('phaseBadge').innerText = phaseId === 99 ? '弱點' : `階段 ${phaseId}`;
+      document.getElementById('phaseTitle').innerText = phaseTitles[phaseId];
+
+      const netControl = document.getElementById('networkControl');
+      if (phaseId === 4 || phaseId === 5) {
+        netControl.classList.remove('hidden');
+        document.getElementById('exampleSource').textContent = phaseNetworkStatus[phaseId];
+      } else {
+        netControl.classList.add('hidden');
+      }
+
+      renderContent();
+      renderStudyStatus();
+      if ((phaseId === 4 || phaseId === 5) && !hasLoadedOnlineContent[phaseId]) triggerNetworkUpdate();
+    }
+
+    function startCountdownTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (currentPhase !== 4 && currentPhase !== 5) return;
+        timerSeconds--;
+        if (timerSeconds <= 0) {
+          timerSeconds = 1800;
+          if (!document.hidden) triggerNetworkUpdate();
+        }
+        updateTimerDisplay();
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+      const s = (timerSeconds % 60).toString().padStart(2, '0');
+      const timerEl = document.getElementById('countdownTimer');
+      if (timerEl) timerEl.innerText = `${m}:${s}`;
+    }
+
+    async function fetchDailyExamples(phase) {
+      const results = await Promise.allSettled(dailySearches[phase].map(async ({ query, scenario }) => {
+        const url = new URL('https://api.tatoeba.org/v1/sentences');
+        url.searchParams.set('lang', 'kor');
+        url.searchParams.set('q', query);
+        url.searchParams.set('sort', 'relevance');
+        url.searchParams.set('showtrans:lang', 'cmn');
+        url.searchParams.set('limit', '50');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        let response;
+        try { response = await fetch(url, { signal: controller.signal }); }
+        finally { clearTimeout(timeout); }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        const rows = Array.isArray(payload.data) ? payload.data : Array.isArray(payload.results) ? payload.results : [];
+        return rows.map(row => {
+          const translations = Array.isArray(row.translations) ? row.translations.flat() : [];
+          const chinese = translations.find(t => t && t.lang === 'cmn' && typeof t.text === 'string');
+          return { jp: row.text, tw: chinese?.text || '', scenario, id: row.id, translated: false };
+        }).filter(row => typeof row.jp === 'string' && row.jp.length <= 100
+          && (!row.tw || row.tw.length <= 100) && /[\uac00-\ud7a3]/u.test(row.jp));
+      }));
+      const examples = results.flatMap(result => result.status === 'fulfilled' ? result.value.slice(0, 4) : []);
+      const unique = [...new Map(examples.map(row => [row.jp, row])).values()].slice(0, 8);
+      if (!unique.length) {
+        const reason = results.find(result => result.status === 'rejected')?.reason;
+        throw new Error(reason ? `${reason.message || reason}` : '查無符合的韓文句子');
+      }
+      await Promise.allSettled(unique.filter(row => !row.tw).map(async row => {
+        const url = new URL('https://api.mymemory.translated.net/get');
+        url.searchParams.set('q', row.jp);
+        url.searchParams.set('langpair', 'ko|zh-TW');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        let response;
+        try { response = await fetch(url, { signal: controller.signal }); }
+        finally { clearTimeout(timeout); }
+        if (!response.ok) return;
+        const payload = await response.json();
+        const translation = payload.responseData?.translatedText;
+        if (typeof translation === 'string' && translation.trim() && translation !== row.jp) {
+          row.tw = translation;
+          row.translated = true;
+        }
+      }));
+      return unique;
+    }
+
+    async function triggerNetworkUpdate() {
+      const phase = currentPhase;
+      if (phase <= 3) {
+        if (selectedExamples[phase] === null) selectExample(phase, 0, false);
+        return updateDailyVocabulary(phase);
+      }
+      if (phase !== 4 && phase !== 5) return;
+      if (phaseUpdateInProgress[phase]) return;
+      phaseUpdateInProgress[phase] = true;
+      const spinner = document.getElementById('refreshSpinner');
+      const source = document.getElementById('exampleSource');
+      timerSeconds = 1800;
+      updateTimerDisplay();
+      spinner.classList.add('fa-spin');
+      source.textContent = '更新中';
+      try {
+        const examples = await fetchDailyExamples(phase);
+        if (phase === 4) dynamicPhase4Data = examples;
+        else dynamicPhase5Data = examples;
+        hasLoadedOnlineContent[phase] = true;
+        phaseNetworkStatus[phase] = '線上日常用語 · Tatoeba';
+        phaseNetworkError[phase] = '';
+        exampleSource = phaseNetworkStatus[phase];
+      } catch (error) {
+        phaseNetworkStatus[phase] = (phase === 4 ? dynamicPhase4Data : dynamicPhase5Data).length
+          ? '更新失敗 · 顯示上次線上資料'
+          : '更新失敗 · 請重試';
+        phaseNetworkError[phase] = networkFailureText(error);
+        exampleSource = phaseNetworkStatus[phase];
+        console.warn(`階段 ${phase} 線上例句更新失敗：`, error);
+      } finally {
+        phaseUpdateInProgress[phase] = false;
+        if (!phaseUpdateInProgress[4] && !phaseUpdateInProgress[5]) spinner.classList.remove('fa-spin');
+        if (currentPhase === 4 || currentPhase === 5) source.textContent = phaseNetworkStatus[currentPhase];
+        if (currentPhase === phase) { renderContent(); renderStudyStatus(); }
+      }
+    }
+
+    function networkFailureText(error) {
+      if (error?.name === 'AbortError') return '連線逾時，請稍後重試。';
+      if (error instanceof TypeError) return '瀏覽器無法連接 Tatoeba；可能是網路或跨來源存取限制。';
+      return error?.message || '目前無法取得線上例句。';
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+
+    function speakExample(index) {
+      const item = dynamicPhase4Data[index];
+      if (item) speak(item.jp);
+    }
+
+    function speakDailyExample(phase, index) {
+      const item = (phase === 4 ? dynamicPhase4Data : dynamicPhase5Data)[index];
+      if (item) speak(item.jp);
+    }
+
+    async function refreshStudyExamples(phase) {
+      if ((phase !== 2 && phase !== 3) || studyOnlineLoading[phase]) return;
+      studyOnlineLoading[phase] = true;
+      studyOnlineStatus[phase] = '正在更新線上常用資料…';
+      if (currentPhase === phase) { renderContent(); renderStudyStatus(); }
+      try {
+        studyOnlineData[phase] = await fetchDailyExamples(phase);
+        selectedExamples[phase] = null;
+        studyOnlineStatus[phase] = `已更新下方 ${studyOnlineData[phase].length} 張線上字卡`;
+      } catch (error) {
+        studyOnlineStatus[phase] = `更新失敗：${networkFailureText(error)}`;
+        console.warn(`階段 ${phase} 線上資料更新失敗：`, error);
+      } finally {
+        studyOnlineLoading[phase] = false;
+        if (currentPhase === phase) { renderContent(); renderStudyStatus(); }
+      }
+    }
+
+    function getStudyCards(phase) {
+      if (phase === 1) return phase1Data;
+      if (studyOnlineData[phase]?.length) {
+        return studyOnlineData[phase].map(item => ({
+          kana: item.jp,
+          romaji: item.scenario,
+          word: item.jp,
+          reading: item.translated ? '中文為自動翻譯' : '',
+          meaning: item.tw || '此句尚無中文翻譯',
+          sourceId: item.id
+        }));
+      }
+      return phase === 2 ? phase2Data : phase3Data;
+    }
+
+    function onlineQuizPool(phase) {
+      const data = phase === 4 ? dynamicPhase4Data : phase === 5 ? dynamicPhase5Data : studyOnlineData[phase] || [];
+      return [...new Map(data.filter(item => item.tw).map(item => [item.tw, item])).values()];
+    }
+
+    function renderStudyRefreshControl(phase) {
+      return `
+        <div class="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-xs font-bold text-slate-800">${phase === 2 ? '常用用語' : '常用句型'}字卡</h3>
+              <p class="text-[11px] text-slate-500" aria-live="polite">${escapeHtml(studyOnlineStatus[phase])}</p>
+            </div>
+            <button type="button" onclick="refreshStudyExamples(${phase})" ${studyOnlineLoading[phase] ? 'disabled' : ''} class="px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl disabled:opacity-50">
+              <i class="fa-solid fa-arrows-rotate"></i> 手動更新
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function speakWrongQuestion(index) {
+      const item = getStoredWrongQuestions()[index];
+      if (item) speak(item.question);
+    }
+
+    function speakStudyCard(phase, index) {
+      const data = { 1: phase1Data, 2: phase2Data, 3: phase3Data }[phase];
+      if (data?.[index]) speak(data[index].word);
+    }
+
+    function selectExample(phase, index, playSound = true) {
+      selectedExamples[phase] = index;
+      const item = getStudyCards(phase)[index];
+      const panel = document.getElementById('selectedExample');
+      if (!panel) return;
+      panel.classList.remove('hidden');
+      panel.querySelector('[data-example-word]').textContent = item.word;
+      panel.querySelector('[data-example-reading]').textContent = item.reading || '';
+      panel.querySelector('[data-example-sound]').textContent = phase === 1 ? `發音示範：${item.sound}` : '';
+      panel.querySelector('[data-example-meaning]').textContent = item.meaning;
+      const sourceLink = panel.querySelector('[data-example-source]');
+      sourceLink.classList.toggle('hidden', !item.sourceId);
+      if (item.sourceId) sourceLink.href = `https://tatoeba.org/sentences/show/${encodeURIComponent(item.sourceId)}`;
+      panel.querySelector('[data-example-speak]').onclick = () => speak(item.word);
+      const reviewButton = panel.querySelector('[data-example-review]');
+      reviewButton.classList.toggle('hidden', phase === 1);
+      if (phase !== 1) {
+        const saved = getStoredWrongQuestions().some(entry => entry.question === item.word);
+        reviewButton.disabled = saved;
+        reviewButton.textContent = saved ? '已加入複習' : '不會，加入複習';
+        reviewButton.onclick = () => markStudyCardForReview(phase, index);
+      }
+      placeExampleAfterRow(index);
+      document.querySelectorAll('[data-kana-index]').forEach(button => {
+        const selected = Number(button.dataset.kanaIndex) === index;
+        button.classList.toggle('ring-2', selected);
+        button.classList.toggle('ring-indigo-500', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+      if (playSound) speak(item.sound || item.kana);
+    }
+
+    function markStudyCardForReview(phase, index) {
+      const item = getStudyCards(phase)?.[index];
+      if (!item) return;
+      saveWrongQuestion({ question: item.word, correctAnswer: item.meaning, source: 'manual' });
+      selectExample(phase, index, false);
+    }
+
+    function placeExampleAfterRow(index) {
+      const grid = document.getElementById('kanaGrid');
+      const panel = document.getElementById('selectedExample');
+      if (!grid || !panel) return;
+      const cards = grid.querySelectorAll('[data-kana-index]');
+      const rowTop = cards[index].offsetTop;
+      let rowEnd = index;
+      while (rowEnd + 1 < cards.length && cards[rowEnd + 1].offsetTop === rowTop) rowEnd++;
+      cards[rowEnd].after(panel);
+    }
+
+    window.addEventListener('resize', () => {
+      const index = selectedExamples[currentPhase];
+      if (index !== null && index !== undefined) placeExampleAfterRow(index);
+    });
+
+    function renderContent() {
+      const area = document.getElementById('contentArea');
+
+      if (currentPhase <= 3) {
+        const data = getStudyCards(currentPhase);
+        
+        area.innerHTML = `
+          <div class="space-y-3">
+            <p id="studyStatus" class="text-xs font-bold text-indigo-700 bg-indigo-50 rounded-xl px-3 py-2" aria-live="polite"></p>
+            <button id="phaseTestButton" onclick="openTestModal(${currentPhase})" class="w-full py-3 bg-indigo-600 active:bg-indigo-700 text-white font-bold text-xs rounded-2xl shadow-md transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>開始階段 ${currentPhase} 模擬測驗 (20 題)</span>
+            </button>
+            ${currentPhase === 2 || currentPhase === 3 ? renderStudyRefreshControl(currentPhase) : ''}
+            <p class="text-xs text-slate-500 px-1">${currentPhase === 1 ? '19 個子音＋21 個母音；點選字母聽示範音節並查看範例' : '點選字卡可聽發音並查看個別範例'}</p>
+            <div id="kanaGrid" class="grid ${currentPhase === 1 ? 'grid-cols-4 sm:grid-cols-6 lg:grid-cols-8' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'} gap-1">
+              ${data.map((item, index) => `
+                ${currentPhase === 1 && phase1Groups[index]
+                  ? `<h3 class="col-span-full text-xs font-bold text-indigo-700 pt-2 px-1">${phase1Groups[index]}</h3>` : ''}
+                <button type="button" data-kana-index="${index}" aria-pressed="false" aria-label="${escapeHtml(item.kana)}，${escapeHtml(item.romaji)}，查看範例" class="px-1 py-1 bg-white border border-slate-200 rounded-lg active:scale-95 transition flex flex-col items-center justify-center text-center shadow-xs ${currentPhase === 1 ? 'min-h-12' : 'min-h-20'} focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
+                    <span class="${currentPhase === 1 ? 'text-lg' : 'text-sm'} font-bold text-indigo-600 leading-tight break-keep">${escapeHtml(item.kana)}</span>
+                    <span class="text-[10px] font-mono text-slate-400 leading-tight">${escapeHtml(item.romaji)}</span>
+                </button>
+              `).join('')}
+              <div id="selectedExample" class="hidden bg-white border border-indigo-200 rounded-xl p-3 shadow-sm space-y-1" style="grid-column: 1 / -1" aria-live="polite">
+                <div class="flex items-center justify-between">
+                  <p class="text-[11px] font-bold text-indigo-600">個別範例</p>
+                  <button type="button" data-example-speak aria-label="播放範例發音" class="text-indigo-600 p-2"><i class="fa-solid fa-volume-high"></i></button>
+                </div>
+                <p data-example-word class="text-lg font-bold text-slate-800"></p>
+                <p data-example-sound class="text-xs font-medium text-indigo-600"></p>
+                <p data-example-reading class="text-xs text-slate-500"></p>
+                <p data-example-meaning class="text-xs text-slate-700"></p>
+                <a data-example-source target="_blank" rel="noopener noreferrer" class="hidden text-[10px] text-indigo-600 underline">來源：Tatoeba</a>
+                <button type="button" data-example-review class="hidden px-2 py-1 rounded-lg bg-amber-50 text-amber-700 text-[11px] font-bold disabled:bg-slate-100 disabled:text-slate-500"></button>
+              </div>
+            </div>
+          </div>
+        `;
+        area.querySelectorAll('[data-kana-index]').forEach(button => {
+          button.addEventListener('click', () => selectExample(currentPhase, Number(button.dataset.kanaIndex)));
+        });
+        if (selectedExamples[currentPhase] !== null) selectExample(currentPhase, selectedExamples[currentPhase], false);
+      } else if (currentPhase === 4) {
+        area.innerHTML = `
+          <div class="space-y-3">
+            <p id="studyStatus" class="text-xs font-bold text-indigo-700 bg-indigo-50 rounded-xl px-3 py-2" aria-live="polite"></p>
+            <button id="phaseTestButton" onclick="openTestModal(4)" class="w-full py-3 bg-indigo-600 active:bg-indigo-700 text-white font-bold text-xs rounded-2xl shadow-md transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>開始階段 4 會話測驗 (20 題)</span>
+            </button>
+            ${dynamicPhase4Data.length ? '' : `<div class="bg-white border border-slate-200 rounded-xl p-4 text-xs text-slate-600">${escapeHtml(phaseNetworkError[4] || '正在取得線上日常用語…')} 點選上方更新按鈕可重試。</div>`}
+            <div class="space-y-2">
+              ${dynamicPhase4Data.map((item, index) => `
+                <div class="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md">${escapeHtml(item.scenario || '會話')}</span>
+                    <button onclick="speakExample(${index})" aria-label="朗讀例句" class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs active:scale-90 transition">
+                      <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                  </div>
+                  <p class="text-sm font-bold text-slate-800 leading-snug">${escapeHtml(item.jp)}</p>
+                  <p class="text-xs text-slate-500">${escapeHtml(item.tw || '此句尚無中文翻譯')}</p>
+                  ${item.translated ? '<p class="text-[10px] text-slate-400">中文為自動翻譯</p>' : ''}
+                  ${item.id ? `<a href="https://tatoeba.org/sentences/show/${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-indigo-600 underline">來源：Tatoeba #${escapeHtml(item.id)}</a>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (currentPhase === 5) {
+        area.innerHTML = `
+          <div class="space-y-3">
+            <p id="studyStatus" class="text-xs font-bold text-indigo-700 bg-indigo-50 rounded-xl px-3 py-2" aria-live="polite"></p>
+            <button id="phaseTestButton" onclick="openTestModal(5)" class="w-full py-3 bg-indigo-600 active:bg-indigo-700 text-white font-bold text-xs rounded-2xl shadow-md transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>開始階段 5 日常用語測驗 (20 題)</span>
+            </button>
+            ${dynamicPhase5Data.length ? '' : `<div class="bg-white border border-slate-200 rounded-xl p-4 text-xs text-slate-600">${escapeHtml(phaseNetworkError[5] || '正在取得線上日常用語…')} 點選上方更新按鈕可重試。</div>`}
+            <div class="space-y-2">
+              ${dynamicPhase5Data.map((item, index) => `
+                <div class="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-md">${escapeHtml(item.scenario)}</span>
+                    <button onclick="speakDailyExample(5, ${index})" aria-label="朗讀例句" class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs active:scale-90 transition">
+                      <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                  </div>
+                  <p class="text-sm font-bold text-slate-800 leading-snug">${escapeHtml(item.jp)}</p>
+                  <p class="text-xs text-slate-500">${escapeHtml(item.tw || '此句尚無中文翻譯')}</p>
+                  ${item.translated ? '<p class="text-[10px] text-slate-400">中文為自動翻譯</p>' : ''}
+                  <a href="https://tatoeba.org/sentences/show/${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-indigo-600 underline">來源：Tatoeba #${escapeHtml(item.id)}</a>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (currentPhase === 99) {
+        const wrongList = getStoredWrongQuestions();
+        if (wrongList.length === 0) {
+          area.innerHTML = `
+            <div class="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6 space-y-2 shadow-xs">
+              <i class="fa-solid fa-circle-check text-4xl text-emerald-500"></i>
+              <h3 class="text-sm font-bold text-slate-800">目前沒有錯題！</h3>
+              <p class="text-xs text-slate-400">測驗答錯的題目與手動加入的常用句會記錄於此。</p>
+            </div>
+          `;
+        } else {
+          area.innerHTML = `
+            <div class="space-y-3">
+              <div class="flex items-center justify-between px-1">
+                <span class="text-xs text-slate-500 font-medium">共累積 ${wrongList.length} 題錯題</span>
+                <button onclick="clearWrongQuestions()" class="text-xs text-red-600 font-bold hover:underline">全部清空</button>
+              </div>
+              <div class="space-y-2">
+                ${wrongList.map((item, index) => `
+                  <div class="p-3 bg-red-50/60 border border-red-100 rounded-2xl flex items-center justify-between gap-2 shadow-xs">
+                    <div class="space-y-0.5 flex-1 min-w-0">
+                      <span class="text-[10px] text-red-500 font-bold block">${item.source === 'manual' ? '手動加入 · ' : ''}${escapeHtml(item.question)}</span>
+                      <p class="text-xs font-bold text-slate-800">${item.source === 'manual' ? '中文意思' : '正確答案'}：${escapeHtml(item.correctAnswer)}</p>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <button onclick="speakWrongQuestion(${index})" aria-label="朗讀錯題" class="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center text-xs active:scale-90 transition">
+                        <i class="fa-solid fa-volume-high"></i>
+                      </button>
+                      <button onclick="removeSingleWrongQuestion(${index})" class="w-7 h-7 rounded-full bg-white text-slate-400 border border-slate-200 hover:text-red-500 flex items-center justify-center text-xs active:scale-90 transition" title="移除此題">
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function openTestModal(phase) {
+      if (!phaseUnlocked(phase) || (!developerMode && studySeconds(phase) < PHASE_STUDY_HOURS[phase] * 3600)
+        || ((phase === 2 || phase === 3) && studyOnlineData[phase].length > 0 && onlineQuizPool(phase).length < 4)
+        || ((phase === 4 || phase === 5) && onlineQuizPool(phase).length < 4)) return;
+      activeTestPhase = phase;
+      const modal = document.getElementById('testModal');
+      const title = document.getElementById('modalTitle');
+      title.innerText = `階段 ${phase} 模擬測驗 (20 題)`;
+      
+      testQuestions = generate20Questions(phase);
+      currentQuestionIdx = 0;
+      userScore = 0;
+
+      renderTestQuestion();
+      modal.classList.remove('hidden');
+    }
+
+    function generate20Questions(phase) {
+      let sourcePool = [];
+      if (phase === 1) sourcePool = phase1Data;
+      else if (phase === 2 || phase === 3) sourcePool = studyOnlineData[phase].length
+        ? onlineQuizPool(phase) : phase === 2 ? phase2Data : phase3Data;
+      else if (phase === 4 || phase === 5) sourcePool = onlineQuizPool(phase);
+
+      let questions = [];
+      for (let i = 0; i < 20; i++) {
+        const target = sourcePool[Math.floor(Math.random() * sourcePool.length)];
+        let qText = '', correctAns = '', options = [];
+
+        if (phase === 1 || ((phase === 2 || phase === 3) && !studyOnlineData[phase].length)) {
+          qText = `「${target.kana}」的羅馬拼音或對應單字是？`;
+          correctAns = target.romaji;
+          let wrongPool = sourcePool.filter(x => x.romaji !== correctAns).map(x => x.romaji);
+          wrongPool = [...new Set(wrongPool)].sort(() => Math.random() - 0.5).slice(0, 3);
+          options = [correctAns, ...wrongPool].sort(() => Math.random() - 0.5);
+        } else {
+          qText = `「${target.jp}」的中文意思是？`;
+          correctAns = target.tw;
+          let wrongPool = sourcePool.filter(x => x.tw !== correctAns).map(x => x.tw);
+          wrongPool = [...new Set(wrongPool)].sort(() => Math.random() - 0.5).slice(0, 3);
+          options = [correctAns, ...wrongPool].sort(() => Math.random() - 0.5);
+        }
+
+        questions.push({ qText, correctAns, options });
+      }
+      return questions;
+    }
+
+    function renderTestQuestion() {
+      const body = document.getElementById('modalBody');
+      const q = testQuestions[currentQuestionIdx];
+
+      body.innerHTML = `
+        <div class="space-y-4">
+          <!-- 進度條 -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[11px] font-bold text-slate-400">
+              <span>進度：${currentQuestionIdx + 1} / 20</span>
+              <span>得分：${userScore}</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+              <div class="bg-indigo-600 h-full transition-all duration-300" style="width: ${((currentQuestionIdx + 1) / 20) * 100}%"></div>
+            </div>
+          </div>
+
+          <!-- 題目卡片 -->
+          <div class="py-2">
+            <h4 class="text-base font-bold text-slate-800 leading-snug">${escapeHtml(q.qText)}</h4>
+          </div>
+
+          <!-- 選項按鈕 -->
+          <div class="space-y-2 pt-1">
+            ${q.options.map((opt, index) => `
+              <button onclick="handleAnswer(testQuestions[currentQuestionIdx].options[${index}])" class="w-full p-3.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 text-left transition active:scale-98 flex items-center justify-between">
+                <span>${escapeHtml(opt)}</span>
+                <i class="fa-regular fa-circle text-slate-300"></i>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function handleAnswer(selectedOpt) {
+      const q = testQuestions[currentQuestionIdx];
+      if (selectedOpt === q.correctAns) {
+        userScore += 5;
+      } else {
+        saveWrongQuestion({
+          question: q.qText,
+          correctAnswer: q.correctAns
+        });
+      }
+
+      currentQuestionIdx++;
+      if (currentQuestionIdx < 20) {
+        renderTestQuestion();
+      } else {
+        renderFinalResult();
+      }
+    }
+
+    function renderFinalResult() {
+      const body = document.getElementById('modalBody');
+      const isPassed = userScore >= 85;
+      if (isPassed && activeTestPhase) {
+        progress.passed[activeTestPhase] = true;
+        saveProgress();
+        renderTabs();
+      }
+
+      body.innerHTML = `
+        <div class="text-center py-6 space-y-4">
+          <div class="w-16 h-16 ${isPassed ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'} rounded-full flex items-center justify-center text-3xl mx-auto shadow-md">
+            <i class="fa-solid ${isPassed ? 'fa-trophy' : 'fa-circle-xmark'}"></i>
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-xl font-bold text-slate-800">總得分：${userScore} 分</h3>
+            <p class="text-xs text-slate-500">${isPassed ? '🎉 恭喜通過測驗！' : '💪 答錯的題目已存入「錯題本」。'}</p>
+          </div>
+          <div class="pt-2 space-y-2">
+            <button onclick="closeModal()" class="w-full py-3 bg-slate-800 text-white rounded-2xl text-xs font-bold transition">
+              返回練習區
+            </button>
+            <button onclick="switchPhase(99); closeModal();" class="w-full py-3 bg-red-600 text-white rounded-2xl text-xs font-bold transition">
+              查看錯題本
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function getStoredWrongQuestions() {
+      return JSON.parse(localStorage.getItem('kr_app_wrong_questions') || '[]');
+    }
+
+    function saveWrongQuestion(item) {
+      let list = getStoredWrongQuestions();
+      if (!list.some(x => x.question === item.question)) {
+        list.push(item);
+        localStorage.setItem('kr_app_wrong_questions', JSON.stringify(list));
+      }
+    }
+
+    function removeSingleWrongQuestion(index) {
+      let list = getStoredWrongQuestions();
+      list.splice(index, 1);
+      localStorage.setItem('kr_app_wrong_questions', JSON.stringify(list));
+      if (currentPhase === 99) renderContent();
+    }
+
+    function clearWrongQuestions() {
+      localStorage.removeItem('kr_app_wrong_questions');
+      if (currentPhase === 99) renderContent();
+    }
+
+    function speak(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('testModal').classList.add('hidden');
+      activeTestPhase = null;
+      renderStudyStatus();
+    }
+  </script>
+</body>
+</html>
