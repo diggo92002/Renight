@@ -21,4 +21,5 @@
 
 - `index.html`：播放器頁面與音訊邏輯
 - `manifest.webmanifest`：手機主畫面安裝資訊
-- `icon.png`：手機與瀏覽器圖示（1254 × 1254 PNG）
+- `icon.png`：高解析度手機與瀏覽器圖示（1254 × 1254 PNG）
+- `icon-192.png`、`icon-512.png`：PWA 安裝圖示尺寸
